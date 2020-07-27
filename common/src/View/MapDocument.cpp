@@ -131,6 +131,7 @@
 #include <kdl/vector_utils.h>
 
 #include <vecmath/polygon.h>
+#include <vecmath/segment.h>
 #include <vecmath/util.h>
 #include <vecmath/vec.h>
 #include <vecmath/vec_io.h>
@@ -1745,6 +1746,21 @@ namespace TrenchBroom {
 
         bool MapDocument::snapVertices(const FloatType snapTo) {
             const auto result = executeAndStore(SnapBrushVerticesCommand::snap(snapTo));
+            return result->success();
+        }
+
+        bool MapDocument::snapVertices(const std::map<vm::vec3, std::vector<Model::BrushNode*>>& vertices, FloatType snapTo) {
+            const auto result = executeAndStore(SnapSpecificBrushVerticesCommand::snap(snapTo, vertices));
+            return result->success();
+        }
+
+        bool MapDocument::snapEdges(const std::map<vm::segment3, std::vector<Model::BrushNode*>>& edges, const FloatType snapTo) {
+            const auto result = executeAndStore(SnapSpecificBrushEdgesCommand::snap(snapTo, edges));
+            return result->success();
+        }
+
+        bool MapDocument::snapFaces(const std::map<vm::polygon3, std::vector<Model::BrushNode*>>& faces, const FloatType snapTo) {
+            const auto result = executeAndStore(SnapSpecificBrushFacesCommand::snap(snapTo, faces));
             return result->success();
         }
 

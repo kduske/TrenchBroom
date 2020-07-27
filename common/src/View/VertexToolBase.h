@@ -306,6 +306,12 @@ namespace TrenchBroom {
             bool canRemoveSelection() const {
                 return handleManager().selectedHandleCount() > 0;
             }
+        public: // vertex snapping
+            bool canSnapVertices() const {
+                return handleManager().selectedHandleCount() > 0;
+            }
+
+            virtual void snapVertices(FloatType snapToF) = 0;
         public: // rendering
             void renderHandles(Renderer::RenderContext& renderContext, Renderer::RenderBatch& renderBatch) const {
                 Renderer::RenderService renderService(renderContext, renderBatch);
@@ -439,8 +445,7 @@ namespace TrenchBroom {
             }
 
             void commandDoOrUndo(Command* command) {
-                if (isVertexCommand(command)) {
-                    auto* vertexCommand = static_cast<VertexCommand*>(command);
+                if (auto* vertexCommand = dynamic_cast<VertexCommand*>(command)) {
                     deselectHandles();
                     removeHandles(vertexCommand);
                     ++m_ignoreChangeNotifications;
@@ -448,8 +453,7 @@ namespace TrenchBroom {
             }
 
             void commandDoneOrUndoFailed(Command* command) {
-                if (isVertexCommand(command)) {
-                    auto* vertexCommand = static_cast<VertexCommand*>(command);
+                if (auto* vertexCommand = dynamic_cast<VertexCommand*>(command)) {
                     addHandles(vertexCommand);
                     selectNewHandlePositions(vertexCommand);
                     --m_ignoreChangeNotifications;
@@ -457,24 +461,11 @@ namespace TrenchBroom {
             }
 
             void commandDoFailedOrUndone(Command* command) {
-                if (isVertexCommand(command)) {
-                    auto* vertexCommand = static_cast<VertexCommand*>(command);
+                if (auto* vertexCommand = dynamic_cast<VertexCommand*>(command)) {
                     addHandles(vertexCommand);
                     selectOldHandlePositions(vertexCommand);
                     --m_ignoreChangeNotifications;
                 }
-            }
-
-            bool isVertexCommand(const Command* command) const {
-                return command->isType(
-                        AddBrushVerticesCommand::Type,
-                        RemoveBrushVerticesCommand::Type,
-                        RemoveBrushEdgesCommand::Type,
-                        RemoveBrushFacesCommand::Type,
-                        MoveBrushVerticesCommand::Type,
-                        MoveBrushEdgesCommand::Type,
-                        MoveBrushFacesCommand::Type
-                );
             }
 
             void selectionDidChange(const Selection& selection) {

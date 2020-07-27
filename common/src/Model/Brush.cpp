@@ -43,6 +43,7 @@
 #include <vecmath/polygon.h>
 #include <vecmath/util.h>
 
+#include <algorithm>
 #include <iterator>
 #include <set>
 #include <string>
@@ -466,12 +467,85 @@ namespace TrenchBroom {
             doSetNewGeometry(worldBounds, matcher, newGeometry);
         }
 
+        static vm::vec3 snapPoint(const vm::vec3& point, const FloatType snapToF) {
+            return snapToF * vm::round(point / snapToF);
+        }
+
+        /**
+         * Snaps all vertices.
+         */
         static BrushGeometry snappedGeometry(const BrushGeometry& geometry, const FloatType snapToF) {
             std::vector<vm::vec3> points;
             points.reserve(geometry.vertexCount());
             
             for (const auto* vertex : geometry.vertices()) {
-                points.push_back(snapToF * vm::round(vertex->position() / snapToF));
+                points.push_back(snapPoint(vertex->position(), snapToF));
+            }
+
+            return BrushGeometry(std::move(points));
+        }
+
+        /**
+         * Snaps only the given vertices.
+         */
+        static BrushGeometry snappedGeometry(const BrushGeometry& geometry, const FloatType snapToF, const std::vector<vm::vec3>& vertexPositionsToSnap) {
+            std::vector<vm::vec3> points;
+            points.reserve(geometry.vertexCount());
+
+            for (const auto* vertex : geometry.vertices()) {
+                if (kdl::vec_contains(vertexPositionsToSnap, vertex->position())) {
+                    points.push_back(snapPoint(vertex->position(), snapToF));
+                } else {
+                    points.push_back(vertex->position());
+                }
+            }
+
+            return BrushGeometry(std::move(points));
+        }
+
+        static bool shouldSnap(const std::vector<vm::segment3>& edgePositionsToSnap, const vm::vec3& vertexPosition) {
+            return std::any_of(std::begin(edgePositionsToSnap), std::end(edgePositionsToSnap), [&](const vm::segment3& edge){
+                return edge.start() == vertexPosition || edge.end() == vertexPosition;
+            });
+        }
+
+        /**
+         * Snaps only the given edges.
+         */
+        static BrushGeometry snappedGeometry(const BrushGeometry& geometry, const FloatType snapToF, const std::vector<vm::segment3>& edgePositionsToSnap) {
+            std::vector<vm::vec3> points;
+            points.reserve(geometry.vertexCount());
+
+            for (const auto* vertex : geometry.vertices()) {
+                if (shouldSnap(edgePositionsToSnap, vertex->position())) {
+                    points.push_back(snapPoint(vertex->position(), snapToF));
+                } else {
+                    points.push_back(vertex->position());
+                }
+            }
+
+            return BrushGeometry(std::move(points));
+        }
+
+        static bool shouldSnap(const std::vector<vm::polygon3>& facePositionsToSnap, const vm::vec3& vertexPosition) {
+            return std::any_of(facePositionsToSnap.cbegin(), facePositionsToSnap.cend(), [&](const vm::polygon3& face){
+                return face.hasVertex(vertexPosition);
+            });
+        }
+
+        /**
+         * Snaps only the given faces.
+         */
+        static BrushGeometry snappedGeometry(const BrushGeometry& geometry, const FloatType snapToF, const std::vector<vm::polygon3>& facePositionsToSnap) {
+            std::vector<vm::vec3> points;
+            points.reserve(geometry.vertexCount());
+
+            for (const auto* vertex : geometry.vertices()) {
+                if (shouldSnap(facePositionsToSnap, vertex->position())) {
+                    points.push_back(snapPoint(vertex->position(), snapToF));
+                } else {
+                    points.push_back(vertex->position());
+                }
             }
 
             return BrushGeometry(std::move(points));
@@ -482,6 +556,9 @@ namespace TrenchBroom {
             return snappedGeometry(*m_geometry, snapToF).polyhedron();
         }
 
+        /**
+         * Snaps all vertices.
+         */
         void Brush::snapVertices(const vm::bbox3& worldBounds, const FloatType snapToF, const bool uvLock) {
             ensure(m_geometry != nullptr, "geometry is null");
             
@@ -490,7 +567,7 @@ namespace TrenchBroom {
             std::map<vm::vec3,vm::vec3> vertexMapping;
             for (const auto* vertex : m_geometry->vertices()) {
                 const auto& origin = vertex->position();
-                const auto destination = snapToF * round(origin / snapToF);
+                const vm::vec3 destination = snapPoint(origin, snapToF);
                 if (newGeometry.hasVertex(destination)) {
                     vertexMapping.insert(std::make_pair(origin, destination));
                 }
@@ -499,6 +576,51 @@ namespace TrenchBroom {
             const PolyhedronMatcher<BrushGeometry> matcher(*m_geometry, newGeometry, vertexMapping);
             doSetNewGeometry(worldBounds, matcher, newGeometry, uvLock);
         }
+
+        bool Brush::canSnapSpecificVertices(const vm::bbox3& /* worldBounds */, const std::vector<vm::vec3>& vertexPositions, const FloatType snapToF) const {
+            ensure(m_geometry != nullptr, "geometry is null");
+            return snappedGeometry(*m_geometry, snapToF, vertexPositions).polyhedron();
+        }
+
+        /**
+         * Snaps the given vertices.
+         *
+         * @param worldBounds world bounds
+         * @param vertexPositions the vertex handles to snap
+         * @param snapToF the snap size
+         * @param uvLock whether to UV lock
+         * @return the vertex handles given in `vertexPositions` after being snapped (order may not be preserved)
+         */
+        std::vector<vm::vec3> Brush::snapSpecificVertices(const vm::bbox3& worldBounds, const std::vector<vm::vec3>& vertexPositions, const FloatType snapToF, const bool uvLock) {
+            ensure(m_geometry != nullptr, "geometry is null");
+
+            const BrushGeometry newGeometry = snappedGeometry(*m_geometry, snapToF, vertexPositions);
+
+            std::map<vm::vec3,vm::vec3> vertexMapping;
+            for (const auto* vertex : m_geometry->vertices()) {
+                const bool shouldSnap = kdl::vec_contains(vertexPositions, vertex->position());
+                const vm::vec3 destination = shouldSnap ? snapPoint(vertex->position(), snapToF) : vertex->position();
+                if (newGeometry.hasVertex(destination)) {
+                    vertexMapping.insert(std::make_pair(vertex->position(), destination));
+                }
+            }
+
+            const PolyhedronMatcher<BrushGeometry> matcher(*m_geometry, newGeometry, vertexMapping);
+            doSetNewGeometry(worldBounds, matcher, newGeometry, uvLock);
+
+            std::vector<vm::vec3> result;
+            result.reserve(vertexPositions.size());
+
+            for (const auto& vertexPosition : vertexPositions) {
+                const auto* newVertex = m_geometry->findClosestVertex(snapPoint(vertexPosition, snapToF), vm::C::almost_zero());
+                if (newVertex != nullptr) {
+                    result.push_back(newVertex->position());
+                }
+            }
+
+            return result;
+        }
+
 
         bool Brush::canMoveEdges(const vm::bbox3& worldBounds, const std::vector<vm::segment3>& edgePositions, const vm::vec3& delta) const {
             ensure(m_geometry != nullptr, "geometry is null");
@@ -545,6 +667,51 @@ namespace TrenchBroom {
             return result;
         }
 
+        bool Brush::canSnapSpecificEdges(const vm::bbox3& /* worldBounds */, const std::vector<vm::segment3>& edgePositions, FloatType snapToF) const {
+            ensure(m_geometry != nullptr, "geometry is null");
+            return snappedGeometry(*m_geometry, snapToF, edgePositions).polyhedron();
+        }
+
+        /**
+         * Snaps the given edges.
+         *
+         * @param worldBounds world bounds
+         * @param edgePositions the edge handles to snap
+         * @param snapToF the snap size
+         * @param uvLock whether to UV lock
+         * @return the edge handles given in `edgePositions` after being snapped (order may not be preserved)
+         */
+        std::vector<vm::segment3> Brush::snapSpecificEdges(const vm::bbox3& worldBounds, const std::vector<vm::segment3>& edgePositions, FloatType snapToF, const bool uvLock) {
+            ensure(m_geometry != nullptr, "geometry is null");
+
+            const BrushGeometry newGeometry = snappedGeometry(*m_geometry, snapToF, edgePositions);
+
+            std::map<vm::vec3,vm::vec3> vertexMapping;
+            for (const auto* vertex : m_geometry->vertices()) {
+                const bool shouldSnapVertex = shouldSnap(edgePositions, vertex->position());
+                const vm::vec3 destination = shouldSnapVertex ? snapPoint(vertex->position(), snapToF) : vertex->position();
+                if (newGeometry.hasVertex(destination)) {
+                    vertexMapping.insert(std::make_pair(vertex->position(), destination));
+                }
+            }
+
+            const PolyhedronMatcher<BrushGeometry> matcher(*m_geometry, newGeometry, vertexMapping);
+            doSetNewGeometry(worldBounds, matcher, newGeometry, uvLock);
+
+            std::vector<vm::segment3> result;
+            result.reserve(edgePositions.size());
+
+            for (const auto& edgePosition : edgePositions) {
+                const auto* newEdge = m_geometry->findClosestEdge(snapPoint(edgePosition.start(), snapToF), snapPoint(edgePosition.end(), snapToF),
+                                                                  vm::C::almost_zero());
+                if (newEdge != nullptr) {
+                    result.push_back(vm::segment3(newEdge->firstVertex()->position(), newEdge->secondVertex()->position()));
+                }
+            }
+
+            return result;
+        }
+
         bool Brush::canMoveFaces(const vm::bbox3& worldBounds, const std::vector<vm::polygon3>& facePositions, const vm::vec3& delta) const {
             ensure(m_geometry != nullptr, "geometry is null");
             ensure(!facePositions.empty(), "no face positions");
@@ -578,6 +745,53 @@ namespace TrenchBroom {
 
             for (const auto& facePosition : facePositions) {
                 const auto* newFace = m_geometry->findClosestFace(facePosition.vertices() + delta, vm::C::almost_zero());
+                if (newFace != nullptr) {
+                    result.push_back(vm::polygon3(newFace->vertexPositions()));
+                }
+            }
+
+            return result;
+        }
+
+        bool Brush::canSnapSpecificFaces(const vm::bbox3& /* worldBounds */, const std::vector<vm::polygon3>& facePositions, FloatType snapToF) const {
+            ensure(m_geometry != nullptr, "geometry is null");
+            return snappedGeometry(*m_geometry, snapToF, facePositions).polyhedron();
+        }
+
+        /**
+         * Snaps the given faces.
+         *
+         * @param worldBounds world bounds
+         * @param facePositions the edge handles to snap
+         * @param snapToF the snap size
+         * @param uvLock whether to UV lock
+         * @return the face handles given in `facePositions` after being snapped (order may not be preserved)
+         */
+        std::vector<vm::polygon3> Brush::snapSpecificFaces(const vm::bbox3& worldBounds, const std::vector<vm::polygon3>& facePositions, FloatType snapToF, const bool uvLock) {
+            ensure(m_geometry != nullptr, "geometry is null");
+
+            const BrushGeometry newGeometry = snappedGeometry(*m_geometry, snapToF, facePositions);
+
+            std::map<vm::vec3,vm::vec3> vertexMapping;
+            for (const auto* vertex : m_geometry->vertices()) {
+                const bool shouldSnapVertex = shouldSnap(facePositions, vertex->position());
+                const vm::vec3 destination = shouldSnapVertex ? snapPoint(vertex->position(), snapToF) : vertex->position();
+                if (newGeometry.hasVertex(destination)) {
+                    vertexMapping.insert(std::make_pair(vertex->position(), destination));
+                }
+            }
+
+            const PolyhedronMatcher<BrushGeometry> matcher(*m_geometry, newGeometry, vertexMapping);
+            doSetNewGeometry(worldBounds, matcher, newGeometry, uvLock);
+
+            std::vector<vm::polygon3> result;
+            result.reserve(facePositions.size());
+
+            for (const auto& facePosition : facePositions) {
+                const std::vector<vm::vec3> snappedFace = kdl::vec_transform(facePosition.vertices(), [&](const vm::vec3& vertex){
+                    return snapPoint(vertex, snapToF);
+                });
+                const auto* newFace = m_geometry->findClosestFace(snappedFace, vm::C::almost_zero());
                 if (newFace != nullptr) {
                     result.push_back(vm::polygon3(newFace->vertexPositions()));
                 }
