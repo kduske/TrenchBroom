@@ -154,7 +154,7 @@ namespace TrenchBroom {
                 return doLoadMap(format, worldBounds, initialMapFilePath, logger);
             } else {
                 auto worldEntity = Model::Entity();
-                if (format == MapFormat::Valve || format == MapFormat::Quake2_Valve || format == MapFormat::Quake3_Valve) {
+                if (format == MapFormat::Valve || format == MapFormat::Quake2_Valve || format == MapFormat::Quake3_Valve || format == MapFormat::Doom3_Valve) {
                     worldEntity.addOrUpdateProperty(PropertyKeys::ValveVersion, "220");
                 }
 
@@ -478,7 +478,12 @@ namespace TrenchBroom {
                     // has to be the whole path for implicit textures!
                     IO::NvObjParser parser(path, std::begin(reader), std::end(reader), m_fs);
                     return parser.initializeModel(logger);
-                } else {
+                } else if (extension == "obj" && kdl::vec_contains(supported, "obj_doom3")) {
+                    auto reader = file->reader().buffer();
+                    // has to be the whole path for implicit textures!
+                    IO::Doom3ObjParser parser(path, std::begin(reader), std::end(reader), m_fs);
+                    return parser.initializeModel(logger);
+                }else {
                     throw GameException("Unsupported model format '" + path.asString() + "'");
                 }
             } catch (const FileSystemException& e) {
@@ -537,6 +542,11 @@ namespace TrenchBroom {
                     auto reader = file->reader().buffer();
                     // has to be the whole path for implicit textures!
                     IO::NvObjParser parser(path, std::begin(reader), std::end(reader), m_fs);
+                    parser.loadFrame(frameIndex, model, logger);
+                } else if (extension == "obj" && kdl::vec_contains(supported, "obj_doom3")) {
+                    auto reader = file->reader().buffer();
+                    // has to be the whole path for implicit textures!
+                    IO::Doom3ObjParser parser(path, std::begin(reader), std::end(reader), m_fs);
                     parser.loadFrame(frameIndex, model, logger);
                 } else {
                     throw GameException("Unsupported model format '" + path.asString() + "'");

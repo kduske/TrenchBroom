@@ -126,7 +126,50 @@ namespace TrenchBroom {
         }
 
         vm::vec2f ParallelTexCoordSystem::doGetTexCoords(const vm::vec3& point, const BrushFaceAttributes& attribs, const vm::vec2f& textureSize) const {
+#if 1
+            if(attribs.hasBrushPrimitMode()) {
+
+#if 0
+                // evaluate texcoords exactly like in Doom 3
+                vm::vec3 texX, texY;
+                computeInitialAxesBP(-getZAxis(), texX, texY);
+
+                const vm::mat4x4f& texMat = attribs.bpMatrix();
+
+                vm::vec4d texVec[2];
+                for( int i = 0; i < 2; i++ ) {
+		            texVec[i][0] = texX[0] * texMat[i][0] + texY[0] * texMat[i][1];
+		            texVec[i][1] = texX[1] * texMat[i][0] + texY[1] * texMat[i][1];
+		            texVec[i][2] = texX[2] * texMat[i][0] + texY[2] * texMat[i][1];
+		            
+                    texVec[i][3] = texMat[i][2];// FIXME + ( origin * texVec[i].ToVec3() );
+                }
+            
+                vm::vec2f st;
+                st[0] = dot(point, texVec[0].xyz()) + texVec[0][3];
+			    st[1] = dot(point, texVec[1].xyz()) + texVec[1][3];
+
+                return st;
+#else
+                // use converted BP matrix to valve axis
+
+                // RB: safeScaleAxis actually divides by scale so undo the divide by scaling with 1.0 / scale ...
+                vm::vec2f scale;
+                scale[0] = (1.0f) / attribs.xScale();
+                scale[1] = (1.0f) / attribs.yScale();
+
+                vm::vec2f st;
+                st[0] = dot(point, safeScaleAxis(getXAxis(),scale[0])) + attribs.xOffset();
+			    st[1] = dot(point, safeScaleAxis(getYAxis(),scale[1])) + attribs.yOffset();
+
+                return st;
+#endif
+            } else {
+                return (computeTexCoords(point, attribs.scale()) + attribs.offset()) / textureSize;
+            }
+#else
             return (computeTexCoords(point, attribs.scale()) + attribs.offset()) / textureSize;
+#endif
         }
 
         /**
@@ -336,6 +379,34 @@ namespace TrenchBroom {
             }
 
             yAxis = vm::normalize(vm::cross(m_xAxis, normal));
+        }
+
+         /**
+         * ComputeAxisBase from Doom 3 and is also the same as in q3map2
+         * WARNING : special case behaviour of atan2(y,x) <-> atan(y/x) might not be the same everywhere when x == 0
+         * rotation by (0,RotY,RotZ) assigns X to normal
+         */
+        void ParallelTexCoordSystem::computeInitialAxesBP(const vm::vec3& normal, vm::vec3& xAxis, vm::vec3& yAxis) {
+            float RotY, RotZ;
+	        vm::vec3 n;
+
+	        // do some cleaning
+	        n[0] = (std::fabs(normal[0]) < 1e-6f) ? 0.0f : normal[0];
+	        n[1] = (std::fabs(normal[1]) < 1e-6f) ? 0.0f : normal[1];
+	        n[2] = (std::fabs(normal[2]) < 1e-6f) ? 0.0f : normal[2];
+
+	        RotY = -atan2( n[2], sqrt( n[1] * n[1] + n[0] * n[0] ) );
+	        RotZ = atan2( n[1], n[0] );
+	       
+            // rotate (0,1,0) and (0,0,1) to compute texS and texT
+	        xAxis[0] = -std::sin(RotZ);
+	        xAxis[1] = std::cos(RotZ);
+	        xAxis[2] = 0;
+	        
+            // the yAxis vector is along -Z ( T texture coorinates axis )
+	        yAxis[0] = -std::sin(RotY) * std::cos(RotZ);
+	        yAxis[1] = -std::sin(RotY) * std::sin(RotZ);
+	        yAxis[2] = -std::cos(RotY);
         }
 
         std::tuple<std::unique_ptr<TexCoordSystem>, BrushFaceAttributes> ParallelTexCoordSystem::doToParallel(const vm::vec3&, const vm::vec3&, const vm::vec3&, const BrushFaceAttributes& attribs) const {
