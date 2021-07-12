@@ -84,6 +84,10 @@ namespace TrenchBroom {
             invalidate();
         }
 
+        void EntityRenderer::invalidateEntity(Model::EntityNode*) {
+            invalidate();
+        }
+
         void EntityRenderer::invalidate() {
             invalidateBounds();
             reloadModels();
@@ -117,13 +121,13 @@ namespace TrenchBroom {
             m_showOccludedOverlays = showOccludedOverlays;
         }
 
-        void EntityRenderer::setTint(const bool tint) {
-            m_tint = tint;
-        }
+        //void EntityRenderer::setTint(const bool tint) {
+        //    m_tint = tint;
+        //}
 
-        void EntityRenderer::setTintColor(const Color& tintColor) {
-            m_tintColor = tintColor;
-        }
+        //void EntityRenderer::setTintColor(const Color& tintColor) {
+        //    m_tintColor = tintColor;
+        //}
 
         void EntityRenderer::setOverrideBoundsColor(const bool overrideBoundsColor) {
             m_overrideBoundsColor = overrideBoundsColor;

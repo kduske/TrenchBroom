@@ -57,6 +57,7 @@ namespace TrenchBroom {
             GroupRenderer(const Model::EditorContext& editorContext);
 
             void setGroups(const std::vector<Model::GroupNode*>& groups);
+            void invalidateGroup(Model::GroupNode* group);
             void invalidate();
             void clear();
 

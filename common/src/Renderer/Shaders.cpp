@@ -27,9 +27,10 @@ namespace TrenchBroom {
             const ShaderConfig VaryingPUniformCShader     = ShaderConfig("Varying Position / Uniform Color", { "VaryingPUniformC.vertsh" },     { "VaryingPC.fragsh" });
             const ShaderConfig MiniMapEdgeShader          = ShaderConfig("MiniMap Edges",                    { "MiniMapEdge.vertsh" },          { "MiniMapEdge.fragsh" });
             const ShaderConfig EntityModelShader          = ShaderConfig("Entity Model",                     { "EntityModel.vertsh" },          { "MapBounds.fragsh", "EntityModel.fragsh" });
-            const ShaderConfig FaceShader                 = ShaderConfig("Face",                             { "Face.vertsh" },                 { "Grid.fragsh", "MapBounds.fragsh", "Face.fragsh" });
-            const ShaderConfig PatchShader                = ShaderConfig("Patch",                            { "Face.vertsh" },                 { "Grid.fragsh", "MapBounds.fragsh", "Face.fragsh" });
-            const ShaderConfig EdgeShader                 = ShaderConfig("Edge",                             { "Edge.vertsh" },                 { "MapBounds.fragsh", "Edge.fragsh" });
+            const ShaderConfig FaceShader                 = ShaderConfig("Face",                             { "BrushFace.vertsh" },                 { "Grid.fragsh", "MapBounds.fragsh", "BrushFace.fragsh" });
+            const ShaderConfig PatchShader                = ShaderConfig("Patch",                            { "BrushFace.vertsh" },                 { "Grid.fragsh", "MapBounds.fragsh", "BrushFace.fragsh" });
+            const ShaderConfig EdgeShader                 = ShaderConfig("Edge",                             { "Edge.vertsh" }     ,            { "MapBounds.fragsh", "Edge.fragsh" });
+            const ShaderConfig BrushEdgeShader            = ShaderConfig("Brush Edge",                       { "BrushEdge.vertsh" },            { "MapBounds.fragsh", "BrushEdge.fragsh" });
             const ShaderConfig ColoredTextShader          = ShaderConfig("Colored Text",                     { "ColoredText.vertsh" },          { "Text.fragsh" });
             const ShaderConfig TextShader                 = ShaderConfig("Text",                             { "Text.vertsh" },                 { "Text.fragsh" });
             const ShaderConfig TextBackgroundShader       = ShaderConfig("Text Background",                  { "TextBackground.vertsh" },       { "TextBackground.fragsh" });

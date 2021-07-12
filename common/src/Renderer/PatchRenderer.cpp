@@ -264,6 +264,7 @@ namespace TrenchBroom {
         }
 
         void PatchRenderer::doRender(RenderContext& context) {
+            return; // FIXME:
             ShaderManager& shaderManager = context.shaderManager();
             ActiveShader shader(shaderManager, Shaders::FaceShader);
             PreferenceManager& prefs = PreferenceManager::instance();

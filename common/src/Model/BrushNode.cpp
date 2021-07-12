@@ -40,7 +40,6 @@
 #include "Model/TagVisitor.h"
 #include "Model/TexCoordSystem.h"
 #include "Model/WorldNode.h"
-#include "Renderer/BrushRendererBrushCache.h"
 
 #include <kdl/overload.h>
 #include <kdl/result.h>
@@ -67,12 +66,9 @@ namespace TrenchBroom {
         const HitType::Type BrushNode::BrushHitType = HitType::freeType();
 
         BrushNode::BrushNode(Brush brush) :
-        m_brushRendererBrushCache(std::make_unique<Renderer::BrushRendererBrushCache>()),
         m_brush(std::move(brush)) {
             clearSelectedFaces();
         }
-
-        BrushNode::~BrushNode() = default;
 
         BrushNode* BrushNode::clone(const vm::bbox3& worldBounds) const {
             return static_cast<BrushNode*>(Node::clone(worldBounds));
@@ -106,7 +102,6 @@ namespace TrenchBroom {
             
             updateSelectedFaceCount();
             invalidateIssues();
-            invalidateVertexCache();
 
             return brush;
         }
@@ -133,7 +128,6 @@ namespace TrenchBroom {
             m_brush.face(faceIndex).setTexture(texture);
             
             invalidateIssues();
-            invalidateVertexCache();
         }
 
         static bool containsPatch(const Brush& brush, const PatchGrid& grid) {
@@ -343,14 +337,6 @@ namespace TrenchBroom {
 
         GroupNode* BrushNode::doGetContainingGroup() {
             return findContainingGroup(this);
-        }
-
-        void BrushNode::invalidateVertexCache() {
-            m_brushRendererBrushCache->invalidateVertexCache();
-        }
-
-        Renderer::BrushRendererBrushCache& BrushNode::brushRendererBrushCache() const {
-            return *m_brushRendererBrushCache;
         }
 
         void BrushNode::initializeTags(TagManager& tagManager) {

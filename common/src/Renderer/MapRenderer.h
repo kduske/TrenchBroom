@@ -40,6 +40,7 @@ namespace TrenchBroom {
     }
 
     namespace Model {
+        class EntityNode;
         class BrushNode;
         class BrushFaceHandle;
         class GroupNode;
@@ -48,26 +49,24 @@ namespace TrenchBroom {
     }
 
     namespace Renderer {
+        class EntityRenderer;
+        class GroupRenderer;
+        class BrushRenderer;
         class EntityLinkRenderer;
         class GroupLinkRenderer;
-        class ObjectRenderer;
+        class PatchRenderer;
         class RenderBatch;
         class RenderContext;
 
         class MapRenderer {
         private:
-            class SelectedBrushRendererFilter;
-            class LockedBrushRendererFilter;
-            class UnselectedBrushRendererFilter;
-
-            using RendererMap = std::map<Model::LayerNode*, ObjectRenderer*>;
-
             std::weak_ptr<View::MapDocument> m_document;
 
-            std::unique_ptr<ObjectRenderer> m_defaultRenderer;
-            std::unique_ptr<ObjectRenderer> m_selectionRenderer;
-            std::unique_ptr<ObjectRenderer> m_lockedRenderer;
+            std::unique_ptr<GroupRenderer> m_groupRenderer;
+            std::unique_ptr<EntityRenderer> m_entityRenderer;
             std::unique_ptr<EntityLinkRenderer> m_entityLinkRenderer;
+            std::unique_ptr<BrushRenderer> m_brushRenderer;
+            std::unique_ptr<PatchRenderer> m_patchRenderer;
             std::unique_ptr<GroupLinkRenderer> m_groupLinkRenderer;
 
             NotifierConnection m_notifierConnection;
@@ -77,9 +76,6 @@ namespace TrenchBroom {
 
             deleteCopyAndMove(MapRenderer)
         private:
-            static std::unique_ptr<ObjectRenderer> createDefaultRenderer(std::weak_ptr<View::MapDocument> document);
-            static std::unique_ptr<ObjectRenderer> createSelectionRenderer(std::weak_ptr<View::MapDocument> document);
-            static std::unique_ptr<ObjectRenderer> createLockRenderer(std::weak_ptr<View::MapDocument> document);
             void clear();
         public: // color config
             void overrideSelectionColors(const Color& color, float mix);
@@ -89,28 +85,22 @@ namespace TrenchBroom {
         private:
             void commitPendingChanges();
             void setupGL(RenderBatch& renderBatch);
-            void renderDefaultOpaque(RenderContext& renderContext, RenderBatch& renderBatch);
-            void renderDefaultTransparent(RenderContext& renderContext, RenderBatch& renderBatch);
-            void renderSelectionOpaque(RenderContext& renderContext, RenderBatch& renderBatch);
-            void renderSelectionTransparent(RenderContext& renderContext, RenderBatch& renderBatch);
-            void renderLockedOpaque(RenderContext& renderContext, RenderBatch& renderBatch);
-            void renderLockedTransparent(RenderContext& renderContext, RenderBatch& renderBatch);
+            // void renderDefaultOpaque(RenderContext& renderContext, RenderBatch& renderBatch);
+            // void renderDefaultTransparent(RenderContext& renderContext, RenderBatch& renderBatch);
+            // void renderSelectionOpaque(RenderContext& renderContext, RenderBatch& renderBatch);
+            // void renderSelectionTransparent(RenderContext& renderContext, RenderBatch& renderBatch);
+            // void renderLockedOpaque(RenderContext& renderContext, RenderBatch& renderBatch);
+            // void renderLockedTransparent(RenderContext& renderContext, RenderBatch& renderBatch);
             void renderEntityLinks(RenderContext& renderContext, RenderBatch& renderBatch);
             void renderGroupLinks(RenderContext& renderContext, RenderBatch& renderBatch);
 
             void setupRenderers();
-            void setupDefaultRenderer(ObjectRenderer& renderer);
-            void setupSelectionRenderer(ObjectRenderer& renderer);
-            void setupLockedRenderer(ObjectRenderer& renderer);
+            // void setupDefaultRenderer(ObjectRenderer& renderer);
+            // void setupSelectionRenderer(ObjectRenderer& renderer);
+            // void setupLockedRenderer(ObjectRenderer& renderer);
+            void setupEntityLinkRenderer();
 
-            typedef enum {
-                Renderer_Default            = 1,
-                Renderer_Selection          = 2,
-                Renderer_Locked             = 4,
-                Renderer_Default_Selection  = Renderer_Default | Renderer_Selection,
-                Renderer_Default_Locked     = Renderer_Default | Renderer_Locked,
-                Renderer_All                = Renderer_Default | Renderer_Selection | Renderer_Locked
-            } Renderer;
+            class CollectRenderableNodes;
 
             /**
              * This moves nodes between default / selection / locked renderers as needed,
@@ -118,9 +108,8 @@ namespace TrenchBroom {
              * (in particular, brushes are not updated unless they move between renderers.)
              * If brushes are modified, you need to call invalidateRenderers() or invalidateObjectsInRenderers()
              */
-            void updateRenderers(Renderer renderers);
-            void invalidateRenderers(Renderer renderers);
-            void invalidateBrushesInRenderers(Renderer renderers, const std::vector<Model::BrushNode*>& brushes);
+            void updateRenderers();
+            void invalidateRenderers();
             void invalidateEntityLinkRenderer();
             void invalidateGroupLinkRenderer();
             void reloadEntityModels();
@@ -151,6 +140,12 @@ namespace TrenchBroom {
             void editorContextDidChange();
 
             void preferenceDidChange(const IO::Path& path);
+        private: // invalidating specific nodes
+            class InvalidateNode;
+            friend class InvalidateNode;
+
+            void invalidateNodes(const std::vector<Model::Node*>& nodes);
+            void invalidateBrushFaces(const std::vector<Model::BrushFaceHandle>& faces);
         };
     }
 }

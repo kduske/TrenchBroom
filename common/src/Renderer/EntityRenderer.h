@@ -76,6 +76,7 @@ namespace TrenchBroom {
             EntityRenderer(Logger& logger, Assets::EntityModelManager& entityModelManager, const Model::EditorContext& editorContext);
 
             void setEntities(const std::vector<Model::EntityNode*>& entities);
+            void invalidateEntity(Model::EntityNode* entity);
             void invalidate();
             void clear();
             void reloadModels();
@@ -85,8 +86,8 @@ namespace TrenchBroom {
             void setOverlayBackgroundColor(const Color& overlayBackgroundColor);
             void setShowOccludedOverlays(bool showOccludedOverlays);
 
-            void setTint(bool tint);
-            void setTintColor(const Color& tintColor);
+            //void setTint(bool tint);
+            //void setTintColor(const Color& tintColor);
 
             void setOverrideBoundsColor(bool overrideBoundsColor);
             void setBoundsColor(const Color& boundsColor);
