@@ -95,7 +95,7 @@ namespace TrenchBroom {
 
             auto textures = parseTextures(reader.subReaderFromBegin(textureOffset), logger);
 
-            auto model = std::make_unique<Assets::EntityModel>(m_name, Assets::PitchType::Normal);
+            auto model = std::make_unique<Assets::EntityModel>(m_name, Assets::PitchType::Normal, Assets::Orientation::Fixed);
             model->addFrames(frameCount);
 
             auto& surface = model->addSurface(m_name);
@@ -296,7 +296,7 @@ namespace TrenchBroom {
             frameName << m_name << "_" << frameIndex;
 
             auto& frame = model.loadFrame(frameIndex, frameName.str(), bounds.bounds());
-            surface.addTexturedMesh(frame, builder.vertices(), builder.indices());
+            surface.addTexturedMesh(frame, std::move(builder.vertices()), std::move(builder.indices()));
 
         }
 

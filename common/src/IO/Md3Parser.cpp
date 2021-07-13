@@ -84,7 +84,7 @@ namespace TrenchBroom {
             /* const auto tagOffset = */ reader.readSize<int32_t>();
             const auto surfaceOffset = reader.readSize<int32_t>();
 
-            auto model = std::make_unique<Assets::EntityModel>(m_name, Assets::PitchType::Normal);
+            auto model = std::make_unique<Assets::EntityModel>(m_name, Assets::PitchType::Normal, Assets::Orientation::Fixed);
             model->addFrames(frameCount);
             parseSurfaces(reader.subReaderFromBegin(surfaceOffset), surfaceCount, *model, logger);
 
@@ -300,7 +300,7 @@ namespace TrenchBroom {
                 frameVertices.push_back(v3);
             }
 
-            surface.addIndexedMesh(frame, frameVertices, rangeMap);
+            surface.addIndexedMesh(frame, std::move(frameVertices), std::move(rangeMap));
         }
     }
 }

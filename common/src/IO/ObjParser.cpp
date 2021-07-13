@@ -84,7 +84,7 @@ namespace TrenchBroom {
 
         std::unique_ptr<Assets::EntityModel> ObjParser::doInitializeModel(Logger& logger) {
             // Model construction prestart (skins are added to this mid-parse)
-            auto model = std::make_unique<Assets::EntityModel>(m_name, Assets::PitchType::Normal);
+            auto model = std::make_unique<Assets::EntityModel>(m_name, Assets::PitchType::Normal, Assets::Orientation::Fixed);
             model->addFrames(1);
             auto& surface = model->addSurface(m_name);
 
@@ -199,7 +199,7 @@ namespace TrenchBroom {
                 builder.addPolygon(surface.skin(face.m_material), vertices);
             }
             // }
-            surface.addTexturedMesh(frame, builder.vertices(), builder.indices());
+            surface.addTexturedMesh(frame, std::move(builder.vertices()), std::move(builder.indices()));
             return model;
         }
 

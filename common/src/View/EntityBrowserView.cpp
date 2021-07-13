@@ -297,7 +297,7 @@ namespace TrenchBroom {
         }
 
         void EntityBrowserView::renderModels(Layout& layout, const float y, const float height, Renderer::Transformation& transformation) {
-            Renderer::ActiveShader shader(shaderManager(), Renderer::Shaders::EntityModelShader);
+            Renderer::ActiveShader shader(shaderManager(), Renderer::Shaders::FixedEntityModelShader);
             shader.set("ApplyTinting", false);
             shader.set("Brightness", pref(Preferences::Brightness));
             shader.set("GrayScale", false);

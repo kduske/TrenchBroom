@@ -249,7 +249,7 @@ namespace TrenchBroom {
             /* const auto syncType = */ reader.readSize<int32_t>();
             const auto flags = reader.readInt<int32_t>();
 
-            auto model = std::make_unique<Assets::EntityModel>(m_name, Assets::PitchType::MdlInverted);
+            auto model = std::make_unique<Assets::EntityModel>(m_name, Assets::PitchType::MdlInverted, Assets::Orientation::Fixed);
             model->addFrames(frameCount);
             auto& surface = model->addSurface(m_name);
 
@@ -447,7 +447,7 @@ namespace TrenchBroom {
             builder.addTriangles(frameTriangles);
 
             auto& frame = model.loadFrame(frameIndex, name, bounds.bounds());
-            surface.addIndexedMesh(frame, builder.vertices(), builder.indices());
+            surface.addIndexedMesh(frame, std::move(builder.vertices()), std::move(builder.indices()));
         }
 
         vm::vec3f MdlParser::unpackFrameVertex(const PackedFrameVertex& vertex, const vm::vec3f& origin, const vm::vec3f& scale) const {

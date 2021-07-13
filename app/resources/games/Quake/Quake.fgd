@@ -272,7 +272,7 @@
 	]
 ]
 
-@PointClass size(-8 -8 -8, 8 8 8) base(Light, Target, Targetname) =
+@PointClass size(-8 -8 -8, 8 8 8) base(Light, Target, Targetname) model({ "path": "sprites/light.png" }) =
 	light : "Invisible light source"
 	[
 		spawnflags(Flags) = [ 1 : "Start off" : 0 ]

@@ -464,7 +464,7 @@ namespace TrenchBroom {
         std::unique_ptr<Assets::EntityModel> AseParser::buildModel(Logger& logger, const Scene& scene) const {
             using Vertex = Assets::EntityModelVertex;
 
-            auto model = std::make_unique<Assets::EntityModel>(m_name, Assets::PitchType::Normal);
+            auto model = std::make_unique<Assets::EntityModel>(m_name, Assets::PitchType::Normal, Assets::Orientation::Fixed);
             model->addFrames(1);
             auto& surface = model->addSurface(m_name);
 
@@ -534,7 +534,7 @@ namespace TrenchBroom {
                 }
 
             }
-            surface.addTexturedMesh(frame, builder.vertices(), builder.indices());
+            surface.addTexturedMesh(frame, std::move(builder.vertices()), std::move(builder.indices()));
 
             return model;
         }

@@ -26,7 +26,8 @@ namespace TrenchBroom {
             const ShaderConfig VaryingPCShader            = ShaderConfig("Varying Position / Color",         { "VaryingPC.vertsh" },            { "VaryingPC.fragsh" });
             const ShaderConfig VaryingPUniformCShader     = ShaderConfig("Varying Position / Uniform Color", { "VaryingPUniformC.vertsh" },     { "VaryingPC.fragsh" });
             const ShaderConfig MiniMapEdgeShader          = ShaderConfig("MiniMap Edges",                    { "MiniMapEdge.vertsh" },          { "MiniMapEdge.fragsh" });
-            const ShaderConfig EntityModelShader          = ShaderConfig("Entity Model",                     { "EntityModel.vertsh" },          { "MapBounds.fragsh", "EntityModel.fragsh" });
+            const ShaderConfig FixedEntityModelShader     = ShaderConfig("Fixed Entity Model",               { "FixedEntityModel.vertsh" },     { "MapBounds.fragsh", "EntityModel.fragsh" });
+            const ShaderConfig BillboardEntityModelShader = ShaderConfig("Billboard Entity Model",           { "BillboardEntityModel.vertsh" }, { "MapBounds.fragsh", "EntityModel.fragsh" });
             const ShaderConfig FaceShader                 = ShaderConfig("Face",                             { "Face.vertsh" },                 { "Grid.fragsh", "MapBounds.fragsh", "Face.fragsh" });
             const ShaderConfig PatchShader                = ShaderConfig("Patch",                            { "Face.vertsh" },                 { "Grid.fragsh", "MapBounds.fragsh", "Face.fragsh" });
             const ShaderConfig EdgeShader                 = ShaderConfig("Edge",                             { "Edge.vertsh" },                 { "MapBounds.fragsh", "Edge.fragsh" });
