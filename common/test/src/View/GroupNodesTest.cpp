@@ -635,30 +635,24 @@ namespace TrenchBroom {
                 setTexture.setTextureName("abc");
                 CHECK(document->setFaceAttributes(setTexture));
 
-                auto attrs = dynamic_cast<Model::BrushNode*>(groupNode->children().at(0))->brush().face(0).attributes();
-                CHECK(attrs.textureName() == "abc");
-
-                auto attrs2 = dynamic_cast<Model::BrushNode*>(linkedGroupNode->children().at(0))->brush().face(0).attributes();
-                CHECK(attrs2.textureName() == "abc");
+                // check that the brushes in both linked groups were textured
+                for (auto* g : std::vector<Model::GroupNode*>{groupNode, linkedGroupNode}) {
+                    auto* brush = dynamic_cast<Model::BrushNode*>(g->children().at(0));
+                    REQUIRE(brush != nullptr);
+                    
+                    auto attrs = brush->brush().face(0).attributes();
+                    CHECK(attrs.textureName() == "abc");
+                }
             }
 
             SECTION("Can't snap to grid with both groups selected") {
                 document->select(std::vector<Model::Node*>{groupNode, linkedGroupNode});
 
-                checkIsOnGrid(groupNode->children().at(0), true);
-                checkIsOnGrid(linkedGroupNode->children().at(0), true);
-
-                document->transformObjects("", vm::translation_matrix(vm::vec3{0.5, 0.5, 0.0}));
-
-                checkIsOnGrid(groupNode->children().at(0), false);
-                checkIsOnGrid(linkedGroupNode->children().at(0), false);
+                CHECK(document->transformObjects("", vm::translation_matrix(vm::vec3{0.5, 0.5, 0.0})));
 
                 // This could generate conflicts, because what snaps one group could misalign another
                 // group in the link set. So, just reject the change.
                 CHECK(!document->snapVertices(16.0));
-
-                checkIsOnGrid(groupNode->children().at(0), false);
-                checkIsOnGrid(linkedGroupNode->children().at(0), false);
             }
         }
 
