@@ -843,9 +843,11 @@ namespace TrenchBroom {
 
         /**
          * For commands that modify brushes, this returns all brushes that should be acted on, based on the current selection.
-         * 
+         *
          * - selected groups implicitly act on any contained brushes
-         * - linked group constraints are applied (each link set only has one instance modified)
+         *
+         * If multiple linked groups are selected, returns brushes from all of them, so attempting to perform commands
+         * on all of them will be blocked as a conflict.
          */
         std::vector<Model::BrushNode*> MapDocument::allSelectedBrushNodes() const {
             auto brushes = std::vector<Model::BrushNode*>{};
@@ -859,12 +861,6 @@ namespace TrenchBroom {
                     [&](Model::PatchNode*)                            {}
                 ));
             }
-
-            // upcast to Node, then downcast back to BrushNode (safe because nodesWithLinkedGroupConstraintsApplied just
-            // returns a subset of the provided Nodes.)
-            brushes = kdl::vec_element_cast<Model::BrushNode*>(
-                Model::nodesWithLinkedGroupConstraintsApplied(*m_world.get(), kdl::vec_element_cast<Model::Node*>(brushes)).nodesToSelect);
-
             return brushes;
         }
 

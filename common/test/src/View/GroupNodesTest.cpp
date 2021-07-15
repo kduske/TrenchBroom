@@ -20,9 +20,13 @@
 #include "View/MapDocumentTest.h"
 #include "TestUtils.h"
 
+#include "Assets/Texture.h"
+#include "Assets/TextureManager.h"
 #include "Model/BrushBuilder.h"
+#include "Model/BrushFace.h"
 #include "Model/BrushFaceHandle.h"
 #include "Model/BrushNode.h"
+#include "Model/ChangeBrushFaceAttributesRequest.h"
 #include "Model/Entity.h"
 #include "Model/EntityNode.h"
 #include "Model/GroupNode.h"
@@ -600,6 +604,21 @@ namespace TrenchBroom {
             CHECK(document->currentGroup() == nullptr);
         }
 
+        static void checkIsOnGrid(const Model::Node* node, const bool expected) {
+            auto* brushNode = dynamic_cast<const Model::BrushNode*>(node);
+            auto positions = brushNode->brush().vertexPositions();
+
+            for (const vm::vec3& position : positions) {
+                const auto snapped = vm::snap(position, vm::vec3{16, 16, 16});
+
+                if (expected) {
+                    CHECK(position == snapped);
+                } else {
+                    CHECK(position != snapped);
+                }
+            }
+        }
+
         // https://github.com/TrenchBroom/TrenchBroom/issues/3768
         TEST_CASE_METHOD(MapDocumentTest, "GroupNodesTest.operationsOnSeveralGroupsInLinkSet", "[GroupNodesTest]") {
             auto* brushNode = createBrushNode();
@@ -614,7 +633,7 @@ namespace TrenchBroom {
             
             document->deselectAll();
 
-            SECTION("face selection locks other groups in link set") {
+            SECTION("Face selection locks other groups in link set") {
                 CHECK(!linkedGroupNode->locked());
 
                 document->select({Model::BrushFaceHandle{brushNode, 0}});
@@ -624,44 +643,47 @@ namespace TrenchBroom {
                 CHECK(!linkedGroupNode->locked());
             }
 
-            SECTION("can snap to grid with both groups selected") {
+            SECTION("Can select two linked groups and apply a texture") {
                 document->select(std::vector<Model::Node*>{groupNode, linkedGroupNode});
 
-                auto checkIsOnGrid = [&](const Model::Node* node, const bool expected) {
-                    auto* brushNode = dynamic_cast<const Model::BrushNode*>(node);                    
-                    auto positions = brushNode->brush().vertexPositions();
+                auto setTexture = Model::ChangeBrushFaceAttributesRequest{};
+                setTexture.setTextureName("abc");
+                CHECK(document->setFaceAttributes(setTexture));
 
-                    for (const vm::vec3& position : positions) {
-                        const auto snapped = vm::snap(position, vm::vec3{16, 16, 16});
-                        
-                        if (expected) {
-                            CHECK(position == snapped);
-                        } else {
-                            CHECK(position != snapped);
-                        }
-                    }
-                };
+                auto attrs = dynamic_cast<Model::BrushNode*>(groupNode->children().at(0))->brush().face(0).attributes();
+                CHECK(attrs.textureName() == "abc");
+
+                auto attrs2 = dynamic_cast<Model::BrushNode*>(linkedGroupNode->children().at(0))->brush().face(0).attributes();
+                CHECK(attrs2.textureName() == "abc");
+            }
+
+            SECTION("Can't snap to grid with both groups selected") {
+                document->select(std::vector<Model::Node*>{groupNode, linkedGroupNode});
 
                 checkIsOnGrid(groupNode->children().at(0), true);
                 checkIsOnGrid(linkedGroupNode->children().at(0), true);
 
                 document->transformObjects("", vm::translation_matrix(vm::vec3{0.5, 0.5, 0.0}));
-                
+
                 checkIsOnGrid(groupNode->children().at(0), false);
                 checkIsOnGrid(linkedGroupNode->children().at(0), false);
 
-                document->snapVertices(16.0);
-                
-                checkIsOnGrid(groupNode->children().at(0), true);
-                checkIsOnGrid(linkedGroupNode->children().at(0), true);
+                // This could generate conflicts, because what snaps one group could misalign another
+                // group in the link set. So, just reject the change.
+                CHECK(!document->snapVertices(16.0));
+
+                checkIsOnGrid(groupNode->children().at(0), false);
+                checkIsOnGrid(linkedGroupNode->children().at(0), false);
             }
         }
 
+        // https://github.com/TrenchBroom/TrenchBroom/issues/3768
         TEST_CASE_METHOD(MapDocumentTest, "GroupNodesTest.operationsOnSeveralGroupsInLinkSetWithPointEntities", "[GroupNodesTest]") {
-            auto* entityNode = new Model::EntityNode();
-            document->addNodes({{document->parentForNodes(), {entityNode}}});
-            document->select(entityNode);
-            entityNode = nullptr;
+            {
+                auto* entityNode = new Model::EntityNode();
+                document->addNodes({{document->parentForNodes(), {entityNode}}});
+                document->select(entityNode);
+            }
 
             auto* groupNode = document->groupSelection("test");
             auto* linkedGroupNode1 = document->createLinkedDuplicate();
@@ -673,12 +695,16 @@ namespace TrenchBroom {
                         
             document->deselectAll();
 
-            SECTION("can set a property with 2/3 groups selected") {
+            SECTION("Attempt to set a property with 2 out of 3 groups selected") {
                 document->select(std::vector<Model::Node*>{groupNode, linkedGroupNode1});
 
-                // NOTE: this invalidates pointers to children of any of the groups,
-                // which is why we null out entityNode above.
-                document->setProperty("key", "value");
+                // Current design is to reject this because it's modifying entities from multiple groups in a link set.
+                // While in this case the change isn't conflicting, some entity changes are,
+                // e.g. unprotecting a property with 2 linked groups selected, where entities have different values
+                // for that protected property.
+                //
+                // Additionally, the use case for editing entity properties with the entire map selected seems unlikely.
+                CHECK(!document->setProperty("key", "value"));
 
                 auto* groupNodeEntity = dynamic_cast<Model::EntityNode*>(groupNode->children().at(0));
                 auto* linkedEntityNode1 = dynamic_cast<Model::EntityNode*>(linkedGroupNode1->children().at(0));
@@ -687,9 +713,9 @@ namespace TrenchBroom {
                 REQUIRE(linkedEntityNode1 != nullptr);
                 REQUIRE(linkedEntityNode2 != nullptr);
 
-                CHECK(groupNodeEntity->entity().hasProperty("key", "value"));
-                CHECK(linkedEntityNode1->entity().hasProperty("key", "value"));
-                CHECK(linkedEntityNode2->entity().hasProperty("key", "value"));
+                CHECK(!groupNodeEntity->entity().hasProperty("key"));
+                CHECK(!linkedEntityNode1->entity().hasProperty("key"));
+                CHECK(!linkedEntityNode2->entity().hasProperty("key"));
             }
         }
     }
