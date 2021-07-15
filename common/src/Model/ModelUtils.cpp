@@ -495,6 +495,7 @@ namespace TrenchBroom {
             // we store the unlocked instance in here.
             kdl::vector_set<Model::GroupNode*> linkedGroupInstancesWithOthersImplicitlyLocked;
 
+            // collects filtered `nodes` which pass the constraints
             std::vector<Model::Node*> nodesToSelect;
 
             std::vector<Model::GroupNode*> ancestorLinkedGroups;
