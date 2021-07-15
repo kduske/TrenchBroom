@@ -604,21 +604,6 @@ namespace TrenchBroom {
             CHECK(document->currentGroup() == nullptr);
         }
 
-        static void checkIsOnGrid(const Model::Node* node, const bool expected) {
-            auto* brushNode = dynamic_cast<const Model::BrushNode*>(node);
-            auto positions = brushNode->brush().vertexPositions();
-
-            for (const vm::vec3& position : positions) {
-                const auto snapped = vm::snap(position, vm::vec3{16, 16, 16});
-
-                if (expected) {
-                    CHECK(position == snapped);
-                } else {
-                    CHECK(position != snapped);
-                }
-            }
-        }
-
         // https://github.com/TrenchBroom/TrenchBroom/issues/3768
         TEST_CASE_METHOD(MapDocumentTest, "GroupNodesTest.operationsOnSeveralGroupsInLinkSet", "[GroupNodesTest]") {
             auto* brushNode = createBrushNode();
