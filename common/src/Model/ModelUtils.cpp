@@ -479,6 +479,14 @@ namespace TrenchBroom {
             return result;
         }
 
+        static void getLinkedGroupAncestorChain(std::vector<Model::GroupNode*>& dest, Model::Node* node) {
+            Model::GroupNode* groupNode = Model::findContainingLinkedGroup(*node);
+            while (groupNode) {
+                dest.push_back(groupNode);
+                groupNode = Model::findContainingLinkedGroup(*groupNode);
+            }
+        }
+
         SelectionWithLinkedGroupConstraintsApplied nodesWithLinkedGroupConstraintsApplied(Model::WorldNode& world, const std::vector<Model::Node*>& nodes) {
             // we allow a selection in 1 instance of a linked group.
             kdl::vector_set<Model::GroupNode*> linkedGroupInstancesToImplicitlyLock;
@@ -486,14 +494,6 @@ namespace TrenchBroom {
             // optimization - once we implicitly lock the "other" instances of a link set, 
             // we store the unlocked instance in here.
             kdl::vector_set<Model::GroupNode*> linkedGroupInstancesWithOthersImplicitlyLocked;
-
-            const auto getLinkedGroupAncestorChain = [](std::vector<Model::GroupNode*>& dest, Model::Node* node) {
-                Model::GroupNode* groupNode = Model::findContainingLinkedGroup(*node);
-                while (groupNode) {
-                    dest.push_back(groupNode);
-                    groupNode = Model::findContainingLinkedGroup(*groupNode);
-                }
-            };
 
             std::vector<Model::Node*> nodesToSelect;
 
