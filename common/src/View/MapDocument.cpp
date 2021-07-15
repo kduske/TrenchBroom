@@ -838,9 +838,7 @@ namespace TrenchBroom {
                 ));
             }
 
-            nodes = kdl::vec_sort_and_remove_duplicates(std::move(nodes));
-
-            return nodes;
+            return kdl::vec_sort_and_remove_duplicates(std::move(nodes));
         }
 
         /**
