@@ -812,9 +812,11 @@ namespace TrenchBroom {
          * 
          * - selected brushes/patches act on their parent entities
          * - selected groups implicitly act on any contained entities
-         * - linked group constraints are applied (each link set only has one instance modified)
+         *
+         * If multiple linked groups are selected, returns entities from all of them, so attempting to perform commands
+         * on all of them will be blocked as a conflict.
          */
-        std::vector<Model::EntityNodeBase*> MapDocument::allSelectedEntityNodes(const bool includeLinkSetDuplicates) const {
+        std::vector<Model::EntityNodeBase*> MapDocument::allSelectedEntityNodes() const {
             if (!hasSelection()) {
                 return m_world ? std::vector<Model::EntityNodeBase*>({ m_world.get() }) : std::vector<Model::EntityNodeBase*>{};
             }
@@ -838,22 +840,7 @@ namespace TrenchBroom {
 
             nodes = kdl::vec_sort_and_remove_duplicates(std::move(nodes));
 
-            if (!includeLinkSetDuplicates) {
-                // upcast to Node, then downcast back to EntityNodeBase (safe because nodesWithLinkedGroupConstraintsApplied just
-                // returns a subset of the provided Nodes.)
-                nodes = kdl::vec_element_cast<Model::EntityNodeBase*>(
-                    Model::nodesWithLinkedGroupConstraintsApplied(*m_world.get(), kdl::vec_element_cast<Model::Node*>(nodes)).nodesToSelect);
-            }
-
             return nodes;
-        }
-
-        std::vector<Model::EntityNodeBase*> MapDocument::allSelectedEntityNodes() const {
-            return allSelectedEntityNodes(false);
-        }
-
-        std::vector<Model::EntityNodeBase*> MapDocument::allSelectedEntityNodesIncludingLinkSetDuplicates() const {
-            return allSelectedEntityNodes(true);
         }
 
         /**
@@ -2575,7 +2562,7 @@ namespace TrenchBroom {
         }
 
         bool MapDocument::clearProtectedProperties() {
-            const auto entityNodes = allSelectedEntityNodesIncludingLinkSetDuplicates();
+            const auto entityNodes = allSelectedEntityNodes();
 
             auto nodesToUpdate = std::vector<std::pair<Model::Node*, Model::NodeContents>>{};
             for (auto* entityNode : entityNodes) {
@@ -2611,7 +2598,7 @@ namespace TrenchBroom {
         }
 
         bool MapDocument::canClearProtectedProperties() const {
-            const auto entityNodes = allSelectedEntityNodesIncludingLinkSetDuplicates();
+            const auto entityNodes = allSelectedEntityNodes();
             if (entityNodes.empty() || (entityNodes.size() == 1u && entityNodes.front() == m_world.get())) {
                 return false;
             }

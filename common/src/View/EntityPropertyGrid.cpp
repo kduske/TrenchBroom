@@ -94,7 +94,7 @@ namespace TrenchBroom {
         void EntityPropertyGrid::addProperty(const bool defaultToProtected) {
             auto document = kdl::mem_lock(m_document);
             const std::string newPropertyKey = PropertyRow::newPropertyKeyForEntityNodes(
-                document->allSelectedEntityNodesIncludingLinkSetDuplicates());
+                document->allSelectedEntityNodes());
 
             document->setProperty(newPropertyKey, "", defaultToProtected);
 
@@ -351,7 +351,7 @@ namespace TrenchBroom {
 
         void EntityPropertyGrid::updateControlsEnabled() {
             auto document = kdl::mem_lock(m_document);
-            const auto nodes = document->allSelectedEntityNodesIncludingLinkSetDuplicates();
+            const auto nodes = document->allSelectedEntityNodes();
             m_table->setEnabled(!nodes.empty());
             m_addPropertyButton->setEnabled(!nodes.empty());
             m_removePropertiesButton->setEnabled(!nodes.empty() && canRemoveSelectedProperties());
